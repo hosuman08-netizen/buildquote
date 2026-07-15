@@ -1,0 +1,9 @@
+{
+  "name": "SiteForge",
+  "short_name": "SiteForge",
+  "description": "건설 앱. Voice 로그, Stable 결제. Fictional. p14 Legion.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0a0806",
+  "theme_color": "#c5a46e"
+}

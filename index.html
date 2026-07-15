@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SiteForge • 건설 플랫폼</title>
+  <meta name="description" content="실제 건설 앱. 프로젝트, 음성 로그, 자재 거래. p6 Voice. p10/p13 cross. Legion p14. Fictional simulation.">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="disclaimer">FICTIONAL CONSTRUCTION SIMULATION ONLY • 18+ • NO REAL FUNDS OR BUILDS • p14 × p6 Voice × p10 Credits × p13 Trade</div>
+      <h1>SiteForge</h1>
+      <p class="tagline">Build. Voice Log. Trade Materials. (Fictional)</p>
+      
+      <div class="wallet">
+        <button onclick="connectWallet()">🔗 Connect</button>
+        <div id="wallet-info">0x... • 1,420 $EROS / 680 Credits</div>
+      </div>
+      
+      <div class="nav">
+        <button onclick="showDashboard()">📊 Dashboard</button>
+        <button onclick="showProjects()">🏗 Projects (FOMO Bids)</button>
+        <button onclick="showVoice()">🎙 Voice Site Log (p6)</button>
+        <button onclick="showTrade()">🛒 Materials (p13 + p10)</button>
+        <button onclick="showCodex()">📓 Codex</button>
+        <button onclick="showPreview()">🖼 Virtual Preview (p11+p9)</button>
+      </div>
+    </header>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="section">
+      <h2>Active Builds</h2>
+      <div id="map" style="height:180px; margin-bottom:10px; border:1px solid #3a3124; border-radius:6px;"></div>
+      <div id="active-builds" class="grid"></div>
+    </div>
+
+    <!-- Projects / Bids -->
+    <div id="projects" class="section hidden">
+      <h2>FOMO Project Bids</h2>
+      <div id="project-list" class="grid"></div>
+      <button onclick="postBid()" class="primary">Submit Bid for New Project</button>
+    </div>
+
+    <!-- Voice Log -->
+    <div id="voice" class="section hidden">
+      <h2>🎙 p6 Voice Site Log (Lung Surprise Eye)</h2>
+      <button onclick="recordVoiceLog()">🎙 Record Daily Log</button>
+      <div id="voice-preview"></div>
+      <div id="log-result"></div>
+    </div>
+
+    <!-- Trade / Materials -->
+    <div id="trade" class="section hidden">
+      <h2>Materials Trade (p13 + p10 Credits)</h2>
+      <div id="materials-list" class="grid"></div>
+    </div>
+
+    <!-- Codex -->
+    <div id="codex" class="section hidden">
+      <h2>📓 Construction Codex (ALWAYS LEARNING)</h2>
+      <div id="codex-list"></div>
+    </div>
+
+    <!-- Virtual Codex Preview Birth (p11 + p9 + p6) -->
+    <div id="preview" class="section hidden">
+      <h2>🖼 Codex Virtual Build Preview (p11 mutates)</h2>
+      <div id="preview-viz" style="height:120px;background:#12100d;border:1px solid #3a3124;border-radius:6px;position:relative;overflow:hidden;margin-bottom:8px;">
+        <div id="build-preview" style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:60px;background:linear-gradient(#c5a46e,#8b6f47);transition:all 0.4s;height:40px;border-radius:2px;box-shadow:0 0 12px #c5a46e;"></div>
+      </div>
+      <div id="preview-meta" style="font-size:11px;color:#8b6f47;"></div>
+      <button onclick="liveTourPreview()">p9 Live Tour (Voice)</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="./lung-surprise-eye.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
+EOF
