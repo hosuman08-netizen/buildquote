@@ -24,6 +24,7 @@
       <div class="nav">
         <button data-section="dashboard" onclick="showDashboard()">Dashboard</button>
         <button data-section="projects" onclick="showProjects()">Projects</button>
+        <button data-section="estimate" onclick="showEstimate()">Estimate</button>
         <button data-section="voice" onclick="showVoice()">Voice Log</button>
         <button data-section="trade" onclick="showTrade()">Materials</button>
         <button data-section="codex" onclick="showCodex()">Codex</button>
@@ -40,9 +41,21 @@
 
     <!-- Projects / Bids -->
     <div id="projects" class="section hidden">
-      <h2>FOMO Project Bids</h2>
+      <h2>Projects</h2>
       <div id="project-list" class="grid"></div>
-      <button onclick="postBid()" class="primary">Submit Bid for New Project</button>
+      <button onclick="showEstimate()" class="primary">+ New Estimate / Project</button>
+    </div>
+
+    <!-- Estimate Builder (real construction estimating) -->
+    <div id="estimate" class="section hidden">
+      <h2>Cost Estimate Builder</h2>
+      <div id="estimate-body"></div>
+    </div>
+
+    <!-- Project Detail: real progress tracking -->
+    <div id="project-detail" class="section hidden">
+      <h2>Project Progress</h2>
+      <div id="detail-body"></div>
     </div>
 
     <!-- Voice Log -->
