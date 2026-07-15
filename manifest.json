@@ -1,7 +1,7 @@
 {
   "name": "SiteForge",
   "short_name": "SiteForge",
-  "description": "건설 앱. Voice 로그, Stable 결제. Fictional. p14 Legion.",
+  "description": "건설 프로젝트 견적·진행 관리 시뮬레이터. 음성 현장 로그, 자재 관리, 가상 크레딧. 실제 자금·시공이 아닙니다.",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#0a0806",

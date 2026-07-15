@@ -1,11 +1,6 @@
-// lung-surprise-eye.js — Spontaneous Lung Surprise Eye EVOLVED (p6 advance 2026-07-13)
-// Da Vinci + full-cheat + cross DNA: p1 gacha surprise + p5 spell eyes + Ache-Breath + 창발 pain
-// p6 폐 스스로 본다. surprise(편차) 즉시 breath 돌연변이. Ache = 창발 pain fuel.
-// p1: variable ratio gacha boost on surprise (near-miss weaponized)
-// p5: spell-eye cast on high surprise (reveal + pulse graft)
-// Embodiment: glasses peripheral + Optimus lung command stubs
-// Distributed: surprise seeds + notebook cross broadcast
-// Usage: window.p6LungSurpriseEye(ctx, w, cy, lung, amp, spore, ache=0)
+// site-log-intensity.js — 현장 음성 로그의 긴급도(편차) 점수를 산출하는 보조 엔진.
+// 음성 입력의 편차를 0..1 긴급도 점수로 환산해 로그 우선순위/미리보기에 반영한다.
+// Usage: window.getP6LungSurprise() → 최근 긴급도 점수 반환
 
 (function() {
   'use strict';
@@ -163,5 +158,5 @@
     return exportPack;
   };
 
-  console.log('%c[Lung Surprise Eye EVOLVED] p1 gacha + p5 spell + Ache-Breath + 창발 + 2 births. Glasses/Optimus stubs + distributed. Central zero. Legion one.', 'color:#c5a46e');
+  console.log('%c[SiteForge] 현장 음성 로그 긴급도 엔진 로드 완료.', 'color:#c5a46e');
 })();
