@@ -40,7 +40,6 @@
 **Roadmap**: Real integration with p10 payments, p6 voice, Web3 for bids (NFT contracts?), 3D with p11.
 
 Legion one. Sovereign neo. 2026-07-13
-EOF
 **p14 subagent (da-vinci) births in progress**: voice logs + surprise priority, p13 materials FOMO, p10 pay, p11 virtual preview, p9 live tours, p7 logistics, Codex mutates success.
 
 **p14 subagent births (2026-07-13)**:

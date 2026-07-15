@@ -350,4 +350,3 @@ function initP14() {
 }
 
 window.onload = initP14;
-EOF

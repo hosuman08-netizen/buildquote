@@ -22,4 +22,3 @@ main, .container { max-width:618px; margin:0 auto; }
 .notebook-entry { background: var(--card); border: 1px solid #3a3124; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-size: 13px; }
 
 #map { height: 200px; margin: 10px 0; border: 1px solid #3a3124; border-radius: 6px; }
-EOF
