@@ -18,12 +18,16 @@ function connectWallet() {
 }
 
 function initMap() {
-  // Simple map for sites (Leaflet if available, fallback)
+  // Sites map: Leaflet if the CDN loaded, otherwise a graceful text fallback
+  const mapEl = document.getElementById('map');
+  if (!mapEl || map) return; // guard double-init
   if (typeof L !== 'undefined') {
     map = L.map('map').setView([37.5, 127], 10);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
   } else {
-    document.getElementById('map').innerHTML = '<p>Map: Seoul area sites (demo)</p>';
+    mapEl.innerHTML = '<p style="text-align:center;color:#8b6f47;padding-top:70px;">Seoul-area build sites (map offline)</p>';
   }
 }
 
@@ -310,11 +314,6 @@ function hideAll() {
   document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
 }
 
-function updateWallet() {
-  const el = document.getElementById('wallet-info');
-  if (el) el.innerHTML = `${wallet || '0xDemo'} • ${balance} $EROS / ${credits} Credits`;
-}
-
 function initP14() {
   updateWallet();
   
@@ -332,14 +331,8 @@ function initP14() {
     console.log('[p14] p6 Lung Surprise Eye ready for voice logs.');
   }
   
-  // Init map stub
-  setTimeout(() => {
-    const mapEl = document.getElementById('map');
-    if (mapEl && typeof L !== 'undefined') {
-      const m = L.map('map').setView([37.5, 127], 10);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(m);
-    }
-  }, 500);
+  // Init map (Leaflet or graceful offline fallback)
+  setTimeout(initMap, 500);
   
   // Show dashboard
   setTimeout(() => {
