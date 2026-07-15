@@ -17,17 +17,17 @@
       <p class="tagline">Build. Voice Log. Trade Materials. (Fictional)</p>
       
       <div class="wallet">
-        <button onclick="connectWallet()">🔗 Connect</button>
+        <button onclick="connectWallet()">Connect Wallet</button>
         <div id="wallet-info">0x... • 1,420 $EROS / 680 Credits</div>
       </div>
       
       <div class="nav">
-        <button onclick="showDashboard()">📊 Dashboard</button>
-        <button onclick="showProjects()">🏗 Projects (FOMO Bids)</button>
-        <button onclick="showVoice()">🎙 Voice Site Log (p6)</button>
-        <button onclick="showTrade()">🛒 Materials (p13 + p10)</button>
-        <button onclick="showCodex()">📓 Codex</button>
-        <button onclick="showPreview()">🖼 Virtual Preview (p11+p9)</button>
+        <button data-section="dashboard" onclick="showDashboard()">Dashboard</button>
+        <button data-section="projects" onclick="showProjects()">Projects</button>
+        <button data-section="voice" onclick="showVoice()">Voice Log</button>
+        <button data-section="trade" onclick="showTrade()">Materials</button>
+        <button data-section="codex" onclick="showCodex()">Codex</button>
+        <button data-section="preview" onclick="showPreview()">Preview</button>
       </div>
     </header>
 

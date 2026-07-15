@@ -9,7 +9,12 @@ let map;
 
 function updateWallet() {
   const el = document.getElementById('wallet-info');
-  if (el) el.innerHTML = `${wallet || '0xDemo'} • ${balance} $EROS / ${credits} Credits`;
+  if (!el) return;
+  const addr = wallet || '0xDemo';
+  el.innerHTML =
+    `<span class="addr">${addr}</span>` +
+    `<span class="bal">${credits.toLocaleString()}<span class="unit"> Credits</span></span>` +
+    `<span class="addr">${balance.toLocaleString()} $EROS</span>`;
 }
 
 function connectWallet() {
@@ -124,7 +129,7 @@ function updatePreviewFromCodex() {
 }
 
 function showPreview() {
-  hideAll();
+  hideAll('preview');
   document.getElementById('preview').classList.remove('hidden');
   updatePreviewFromCodex();
 }
@@ -168,7 +173,7 @@ function postBid() {
 }
 
 function showDashboard() {
-  hideAll();
+  hideAll('dashboard');
   document.getElementById('dashboard').classList.remove('hidden');
   const div = document.getElementById('active-builds');
   div.innerHTML = '';
@@ -184,15 +189,18 @@ function showDashboard() {
     const el = document.createElement('div');
     el.className = 'card';
     const mut = (p.surprise * (1 + codexAvg*0.5)).toFixed(2);
-    el.innerHTML = `<strong>${p.title}</strong><br>Budget: ${p.budget} | ${p.status}<br>Surprise: ${p.surprise.toFixed(2)} → Mutated ${mut} (Codex)`;
-    if (p.status !== 'completed') el.innerHTML += `<br><button onclick="completeProject(${p.id})" style="font-size:10px">Harvest p10</button>`;
-    el.innerHTML += `<br><button onclick="showPreview()" style="font-size:10px">p11 Preview</button>`;
+    el.innerHTML =
+      `<strong>${p.title}</strong>` +
+      `<div class="meta"><span class="hero-num">${p.budget.toLocaleString()}</span> Credits · ${p.status}</div>` +
+      `<div class="meta">Surprise ${p.surprise.toFixed(2)} → Mutated ${mut} (Codex)</div>`;
+    if (p.status !== 'completed') el.innerHTML += `<button class="primary" onclick="completeProject(${p.id})">Harvest</button>`;
+    el.innerHTML += `<button class="secondary" onclick="showPreview()">Preview</button>`;
     div.appendChild(el);
   });
 }
 
 function showProjects() {
-  hideAll();
+  hideAll('projects');
   document.getElementById('projects').classList.remove('hidden');
   const list = document.getElementById('project-list');
   list.innerHTML = '';
@@ -205,11 +213,11 @@ function showProjects() {
     el.className = 'card';
     const health = (proj.surprise + codexBoost).toFixed(2);
     el.innerHTML = `
-      <strong>${proj.title}</strong><br>
-      Budget: ${proj.budget} | Status: ${proj.status}<br>
-      Surprise: ${proj.surprise.toFixed(2)} | Codex Health: ${health}<br>
-      <button onclick="placeBid(${proj.id})">Place Bid (FOMO)</button>
-      ${proj.status !== 'completed' ? `<button onclick="completeProject(${proj.id})">Complete + p10 Harvest</button>` : ''}
+      <strong>${proj.title}</strong>
+      <div class="meta"><span class="hero-num">${proj.budget.toLocaleString()}</span> Credits · ${proj.status}</div>
+      <div class="meta">Surprise ${proj.surprise.toFixed(2)} · Codex Health ${health}</div>
+      <button class="primary" onclick="placeBid(${proj.id})">Place Bid</button>
+      ${proj.status !== 'completed' ? `<button class="secondary" onclick="completeProject(${proj.id})">Complete + Harvest</button>` : ''}
     `;
     list.appendChild(el);
   });
@@ -234,12 +242,12 @@ function placeBid(projId) {
 }
 
 function showVoice() {
-  hideAll();
+  hideAll('voice');
   document.getElementById('voice').classList.remove('hidden');
 }
 
 function showTrade() {
-  hideAll();
+  hideAll('trade');
   document.getElementById('trade').classList.remove('hidden');
   const list = document.getElementById('materials-list');
   list.innerHTML = '';
@@ -254,7 +262,10 @@ function showTrade() {
     const price = Math.floor(m.base * (0.8 + m.surprise * 0.6));
     const el = document.createElement('div');
     el.className = 'card';
-    el.innerHTML = `${m.name} - ${price} Credits (FOMO ${ (m.surprise*100).toFixed(0)}%)<br><button onclick="buyMaterialWithLogistics('${m.name}', ${price})">Buy + Dispatch Logistics (p7)</button>`;
+    el.innerHTML =
+      `<strong>${m.name}</strong>` +
+      `<div class="meta"><span class="hero-num">${price.toLocaleString()}</span> Credits · <span class="fomo">FOMO ${(m.surprise*100).toFixed(0)}%</span></div>` +
+      `<button class="primary" onclick="buyMaterialWithLogistics('${m.name}', ${price})">Buy + Dispatch Logistics</button>`;
     list.appendChild(el);
   });
 }
@@ -283,7 +294,7 @@ function buyMaterialWithLogistics(name, price) {
 }
 
 function showCodex() {
-  hideAll();
+  hideAll('codex');
   document.getElementById('codex').classList.remove('hidden');
   const list = document.getElementById('codex-list');
   list.innerHTML = '<h3>Construction Codex (ALWAYS LEARNING + p6 spores)</h3>';
@@ -310,8 +321,11 @@ function addToCodex(note) {
   localStorage.setItem('p14_codex', JSON.stringify(codex));
 }
 
-function hideAll() {
+function hideAll(activeId) {
   document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+  // Nav active-state: fluency — always show "where am I"
+  document.querySelectorAll('.nav button').forEach(b =>
+    b.classList.toggle('active', activeId && b.dataset.section === activeId));
 }
 
 function initP14() {
@@ -334,9 +348,9 @@ function initP14() {
   // Init map (Leaflet or graceful offline fallback)
   setTimeout(initMap, 500);
   
-  // Show dashboard
+  // Show dashboard (routes through showDashboard so nav highlights on load)
   setTimeout(() => {
-    document.getElementById('dashboard').classList.remove('hidden');
+    showDashboard();
     // Birth 3 seed: ALWAYS LEARNING codex mutates preview on launch
     if (codex.length > 0) updatePreviewFromCodex();
   }, 300);
