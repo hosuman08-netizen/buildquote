@@ -167,3 +167,7 @@ button.primary:hover, .wallet button:hover { filter:brightness(1.08); }
 .phase-w { color:var(--gold-dim); font-size:11px; }
 .phase input[type=range] { width:100%; margin-top:2px; accent-color:var(--gold); }
 #project-detail .card button, #project-detail > #detail-body > button { width:100%; margin-top:calc(var(--grid)); }
+
+.site-footer { margin-top:32px; padding:16px 0 8px; text-align:center; border-top:1px solid #3a3124; }
+.site-footer a { color:#8b6f47; font-size:12px; text-decoration:none; opacity:.75; }
+.site-footer a:hover { opacity:1; text-decoration:underline; }
