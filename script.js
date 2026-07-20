@@ -23,6 +23,48 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+
+function bqDayKey(off){const d=new Date();d.setDate(d.getDate()+(off||0));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function bumpBqStreak(kind){
+  try{
+    let st=JSON.parse(localStorage.getItem('bq_streak')||'{}');
+    const t0=bqDayKey(0);
+    if(st.last!==t0){
+      const y=bqDayKey(-1),y2=bqDayKey(-2);
+      if(st.last&&st.last!==y&&st.last===y2&&(st.count||0)>=3){
+        const ready=!st.shieldLast||((new Date(t0)-new Date(st.shieldLast))/86400000)>=7;
+        if(ready){st.shieldLast=t0;st.last=y;}
+      }
+      st.count=(st.last===y)?(st.count||0)+1:1; st.last=t0;
+      localStorage.setItem('bq_streak',JSON.stringify(st));
+      try{legionTrack('streak',{count:st.count,kind:kind||'act'})}catch(e){}
+    }
+    const k='bq_day_'+t0; let day=JSON.parse(localStorage.getItem(k)||'{"lines":0,"projects":0}');
+    if(kind==='line') day.lines=(day.lines||0)+1;
+    if(kind==='project') day.projects=(day.projects||0)+1;
+    localStorage.setItem(k,JSON.stringify(day));
+    renderBqLoop();
+  }catch(e){}
+}
+function renderBqLoop(){
+  try{
+    let el=document.getElementById('bqLoop');
+    if(!el){
+      el=document.createElement('div'); el.id='bqLoop';
+      el.style.cssText='margin:8px 0;padding:10px;border:1px solid #2a2438;border-radius:12px;font-size:12px;display:flex;flex-wrap:wrap;gap:8px';
+      const host=document.querySelector('header')||document.querySelector('h1')||document.body;
+      host.insertAdjacentElement('afterend', el);
+    }
+    const st=JSON.parse(localStorage.getItem('bq_streak')||'{}');
+    const day=JSON.parse(localStorage.getItem('bq_day_'+bqDayKey(0))||'{}');
+    const end=new Date(); end.setHours(24,0,0,0);
+    const ms=Math.max(0,end-Date.now());
+    const clock=Math.floor(ms/3600000)+'h '+Math.floor((ms%3600000)/60000)+'m';
+    const n=(typeof projects!=='undefined'&&projects)?projects.length:0;
+    el.innerHTML='🔥 '+(st.count||0)+'일 · 오늘 항목 '+(day.lines||0)+' · 프로젝트 '+(day.projects||0)+' · 총현장 '+n+' · 리셋 '+clock+' · <span style="opacity:.7">견적 시뮬 · 투자/시공 권유 아님</span>';
+  }catch(e){}
+}
+
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const dateKR = d => { const x = new Date(d); return isNaN(x) ? '-' : `${x.getFullYear()}.${String(x.getMonth()+1).padStart(2,'0')}.${String(x.getDate()).padStart(2,'0')}`; };
 const addDays = (d, n) => new Date(new Date(d).getTime() + n * 86400000);
@@ -323,6 +365,7 @@ function addLineFromPicker() {
   draft.lines.push({ itemId: c.id, trade: c.trade, qty, unitCost: c.cost, note: '' });
   saveDraft();
   renderEstimate();
+  try{bumpBqStreak('line');}catch(e){}
   toast(`${c.name} ${qty}${c.unit} 추가`);
 }
 function addCustomLine() {
@@ -592,6 +635,7 @@ function createProjectFromDraft() {
   };
   projects.unshift(proj);
   save('p14_projects', projects);
+  try{bumpBqStreak('project');}catch(e){}
 
   // 핵심 루프: 라인아이템 견적 완성 → 프로젝트 착수
   if (window.legionTrack) window.legionTrack('activate');
@@ -1630,3 +1674,5 @@ function initP14() {
   showDashboard();
 }
 window.onload = initP14;
+
+try{ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', renderBqLoop); else setTimeout(renderBqLoop,80); }catch(e){}
