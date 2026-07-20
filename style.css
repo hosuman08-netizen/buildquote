@@ -171,6 +171,11 @@ button.primary:hover, .wallet button:hover { filter:brightness(1.08); }
 .est-kpi-l { font-size:11px; color:var(--dim); }
 .est-kpi-h { font-size:9.5px; color:var(--gold-dim); }
 
+.est-recap { margin-top:calc(var(--grid)*1.5); }
+.est-recap-head { margin-bottom:calc(var(--grid)); color:var(--gold-dim); }
+.est-recap .est-split { margin-bottom:2px; }
+.est-recap-hours { margin-top:calc(var(--grid)); padding-top:calc(var(--grid)); border-top:1px solid var(--line); }
+
 .est-totals {
   background:var(--card); border:1px solid var(--line); border-radius:12px;
   padding:calc(var(--grid)*2); margin-bottom:calc(var(--grid)*2);

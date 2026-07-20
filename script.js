@@ -568,6 +568,31 @@ function renderProjectDetail() {
     : drift <= -5 ? `일정보다 지연 (${drift.toFixed(0)}%)`
     : '일정대로 진행';
 
+  // Keep the original estimate a living reference: recap the material/labor split
+  // that produced this budget (only for projects created from an estimate).
+  const est = proj.estimate;
+  let estRecapHTML = '';
+  if (est && (est.materialCost || est.laborCost)) {
+    const dir = (est.materialCost || 0) + (est.laborCost || 0);
+    const matShare = dir ? Math.round(est.materialCost / dir * 100) : 0;
+    const labShare = dir ? 100 - matShare : 0;
+    const earnedMat = Math.round((est.materialCost || 0) * prog / 100);
+    const earnedLab = Math.round((est.laborCost || 0) * prog / 100);
+    estRecapHTML = `
+      <div class="card est-recap">
+        <div class="meta est-recap-head">견적 원가 (완료 ${prog}% 기준 소진)</div>
+        <div class="est-split" title="자재 ${matShare}% · 인건비 ${labShare}%">
+          <div class="est-split-mat" style="width:${matShare}%"></div>
+          <div class="est-split-lab" style="width:${labShare}%"></div>
+        </div>
+        <div class="est-split-legend">
+          <span><i class="dot mat"></i>자재 ${Math.round(est.materialCost||0).toLocaleString()} · 소진 ${earnedMat.toLocaleString()}</span>
+          <span><i class="dot lab"></i>인건비 ${Math.round(est.laborCost||0).toLocaleString()} · 소진 ${earnedLab.toLocaleString()}</span>
+        </div>
+        ${est.laborHours ? `<div class="meta est-recap-hours">인건비 ${est.laborHours.toLocaleString()} 시간 · 견적 총액 ${Math.round(est.total||proj.budget).toLocaleString()} 크레딧</div>` : ''}
+      </div>`;
+  }
+
   wrap.innerHTML = `
     <div class="card">
       <strong>${proj.title}</strong>
@@ -576,6 +601,7 @@ function renderProjectDetail() {
       <div class="meta">전체 ${prog}% · 경과 시간 ${schedElapsed}% · <b>${driftTxt}</b></div>
       <div class="meta">예산 <span class="hero-num">${proj.budget.toLocaleString()}</span> · 완료 가치 <span class="hero-num">${earned.toLocaleString()}</span> 크레딧</div>
     </div>
+    ${estRecapHTML}
     <h3 class="detail-h3">공정별 진행률</h3>
     ${phasesHTML}
     ${proj.status !== 'completed'
