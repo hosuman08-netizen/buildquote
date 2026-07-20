@@ -685,10 +685,10 @@ function showCodex() {
   hideAll('codex');
   document.getElementById('codex').classList.remove('hidden');
   const list = document.getElementById('codex-list');
-  list.innerHTML = '<h3>현장 노트</h3>';
+  list.innerHTML = '';
 
   if (codex.length === 0) {
-    list.innerHTML += '<p>음성 로그를 남기거나 입찰하면 노트가 쌓입니다.</p>';
+    list.innerHTML = '<p class="est-empty">음성 로그를 남기거나 입찰하면 노트가 쌓입니다.</p>';
     return;
   }
   
