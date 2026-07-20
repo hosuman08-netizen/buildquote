@@ -110,7 +110,33 @@ const CATALOG = [
   { id:'etc_live',   trade:'etc',   name:'임시 거주비',        spec:'월 단위',                 unit:'개월', cost:1200000, low:700000, high:2000000, auto:()=>2 },
   { id:'etc_permit', trade:'etc',   name:'관리실 신고·동의',   spec:'행위허가 대행',            unit:'식',  cost:300000,  low:150000, high:500000,  auto:()=>1 }
 ];
-const itemOf = id => CATALOG.find(i => i.id === id);
+// ── 마이 단가표 레이어 ──────────────────────────────────────
+// 기본 CATALOG는 고정 시세 앵커. 사용자는 자기 단가로 덮어쓰거나(priceBook)
+// 자기 품목을 추가(customItems)한다. 견적 피커·계산은 모두 이 병합 결과를 읽는다.
+function normalizeCustom(arr) {
+  // localStorage는 함수를 저장하지 못하므로 auto()를 autoQty에서 복원한다.
+  return (Array.isArray(arr) ? arr : []).map(c => ({
+    ...c, custom: true,
+    low:  c.low  != null ? c.low  : c.cost,
+    high: c.high != null ? c.high : c.cost,
+    auto: (py => Math.max(1, Math.round(Number(c.autoQty) || 1)))
+  }));
+}
+function effectiveItem(base) {
+  const o = priceBook[base.id];
+  if (!o) return base;
+  return { ...base,
+    cost: o.cost != null ? o.cost : base.cost,
+    low:  o.low  != null ? o.low  : base.low,
+    high: o.high != null ? o.high : base.high,
+    edited: true };
+}
+function effectiveCatalog() { return CATALOG.map(effectiveItem).concat(customItems); }
+const itemOf = id => effectiveCatalog().find(i => i.id === id) || null;
+function saveBook()   { save('p14_pricebook', priceBook); }
+function saveCustom() { save('p14_custom', customItems.map(c => ({
+  id:c.id, trade:c.trade, name:c.name, spec:c.spec, unit:c.unit,
+  cost:c.cost, low:c.low, high:c.high, autoQty:c.autoQty }))); }
 
 // 프로젝트 유형 템플릿 — 빈 화면에서 시작하지 않게 한다.
 // 금액대별 커버 범위는 국내에서 통용되는 32평 기준 관행을 따랐다.
@@ -146,6 +172,9 @@ let logs     = load('p14_logs', []);
 let codex    = load('p14_codex', []);
 let photos   = load('p14_photos', []);
 let punch    = load('p14_punch', []);
+// 마이 단가표: 기본 CATALOG 위에 얹는 사용자 단가 오버라이드 + 사용자 추가 품목.
+let priceBook   = load('p14_pricebook', {});       // { [id]: { cost, low, high } }
+let customItems = normalizeCustom(load('p14_custom', []));  // 사용자 추가 품목(함수 복원)
 let company  = load('p14_company', { name:'', biz:'', ceo:'', tel:'', addr:'', validDays:15 });
 let credits  = load('p14_credits', 680);          // 자재 발주 시뮬용 부가 레이어(견적과 무관)
 let wallet   = null;
@@ -391,11 +420,11 @@ function renderEstimate() {
   const pickHTML = `
     <div class="picker">
       <select id="pick-item" onchange="onPickChange()">
-        ${TRADES.map(t => {
-          const items = CATALOG.filter(c => c.trade === t.key);
+        ${(eff => TRADES.map(t => {
+          const items = eff.filter(c => c.trade === t.key);
           return items.length ? `<optgroup label="${t.name}">${items.map(c =>
-            `<option value="${c.id}">${c.name} — ${num(c.cost)}/${c.unit}</option>`).join('')}</optgroup>` : '';
-        }).join('')}
+            `<option value="${c.id}">${c.name} — ${num(c.cost)}/${c.unit}${c.custom ? ' ·직접' : ''}</option>`).join('')}</optgroup>` : '';
+        }).join(''))(effectiveCatalog())}
       </select>
       <input type="number" id="pick-qty" min="0" step="any" placeholder="수량">
       <button class="primary" onclick="addLineFromPicker()">+ 추가</button>
@@ -800,7 +829,7 @@ function renderDocs() {
         ${projects.map(p => `<option value="${p.id}" ${docSource === p.id ? 'selected' : ''}>${esc(p.title)}</option>`).join('')}
       </select>
       <div class="tabs">
-        ${[['quote','견적서'],['gantt','공정표'],['pay','계약·결제']].map(([k, l]) =>
+        ${[['quote','견적서'],['gantt','공정표'],['contract','계약서'],['pay','결제']].map(([k, l]) =>
           `<button class="${docTab === k ? 'on' : ''}" onclick="setDocTab('${k}')">${l}</button>`).join('')}
       </div>
     </div>`;
@@ -812,7 +841,10 @@ function renderDocs() {
     return;
   }
   wrap.innerHTML = selector +
-    (docTab === 'quote' ? quoteHTML(src, est) : docTab === 'gantt' ? ganttHTML(src) : payHTML(src, est));
+    (docTab === 'quote' ? quoteHTML(src, est)
+      : docTab === 'gantt' ? ganttHTML(src)
+      : docTab === 'contract' ? contractHTML(src, est)
+      : payHTML(src, est));
 }
 
 function quoteHTML(src, est) {
@@ -998,6 +1030,120 @@ function setPayPct(i, v) {
   if (src._proj) { src._proj.payment = pay; save('p14_projects', projects); }
   else { draft.payment = pay; saveDraft(); }
   renderDocs();
+}
+
+/* ── 공사도급계약서 생성 ──────────────────────────────────
+   견적·공정표·결제 스케줄이 하나의 계약 문서로 조립된다.
+   금액·기간·지체상금·하자보증금은 모두 데이터에서 결정적으로 계산된다. ── */
+const CONTRACT_DEFAULTS = { client:'', clientAddr:'', delayRate:3, court:'서울중앙지방법원', warrantyBondPct:3 };
+function contractMeta(src) {
+  const base = src._proj ? (src._proj.contract || {}) : (draft.contract || {});
+  return { ...CONTRACT_DEFAULTS, ...base };
+}
+function setContractField(k, v) {
+  const src = docSrcObj();
+  const m = contractMeta(src);
+  m[k] = (k === 'delayRate' || k === 'warrantyBondPct') ? clamp(parseFloat(v) || 0, 0, 100) : v;
+  if (src._proj) { src._proj.contract = m; save('p14_projects', projects); }
+  else { draft.contract = m; saveDraft(); }
+  // 비율 변경은 문서 전체 금액에 영향 → 전체 재렌더. 텍스트 필드는 저장만.
+  if (k === 'delayRate' || k === 'warrantyBondPct') renderDocs();
+}
+function contractHTML(src, est) {
+  const m = contractMeta(src);
+  const sch = computeSchedule(src);
+  const start = new Date(src.startDate || todayISO());
+  const end = addDays(start, sch.totalDays);
+  const total = est.total;
+  const pay = paymentOf(src);
+  const daily = Math.round(total * (Number(m.delayRate) || 0) / 1000);
+  const bond  = Math.round(total * (Number(m.warrantyBondPct) || 0) / 100);
+  const clause = (n, t, body) => `<div class="cl"><div class="cl-h">제${n}조 <b>(${t})</b></div><div class="cl-b">${body}</div></div>`;
+  const payDate = i => i === 0 ? start
+    : i === pay.length - 1 ? addDays(start, sch.totalDays + 14)
+    : addDays(start, Math.round(sch.totalDays * (i / (pay.length - 1)) * 0.8));
+
+  return `
+    <details class="rates">
+      <summary><span>계약 정보 — 도급인(건축주) · 지체상금 · 관할</span><i class="chev">▾</i></summary>
+      <div class="rates-body co-fields">
+        <label>도급인(건축주) <input type="text" value="${esc(m.client)}" placeholder="홍길동" oninput="setContractField('client', this.value)"></label>
+        <label class="wide">도급인 주소 <input type="text" value="${esc(m.clientAddr)}" placeholder="서울시 …" oninput="setContractField('clientAddr', this.value)"></label>
+        <label>지체상금율 <input type="number" min="0" max="100" step="0.5" value="${m.delayRate}" oninput="setContractField('delayRate', this.value)">‰(1000분율)</label>
+        <label>하자보증금 <input type="number" min="0" max="100" step="1" value="${m.warrantyBondPct}" oninput="setContractField('warrantyBondPct', this.value)">%</label>
+        <label class="wide">관할 법원 <input type="text" value="${esc(m.court)}" placeholder="서울중앙지방법원" oninput="setContractField('court', this.value)"></label>
+      </div>
+    </details>
+
+    <div class="paper" id="contract-paper">
+      <div class="paper-head">
+        <h4>공 사 도 급 계 약 서</h4>
+        <div class="paper-meta"><div><span>계약일</span><b>${dateKR(todayISO())}</b></div></div>
+      </div>
+
+      <p class="ct-intro">도급인 <b>${esc(m.client || '(건축주)')}</b>(이하 "갑")과 수급인 <b>${esc(company.name || '(시공사)')}</b>(이하 "을")은
+      아래 현장의 인테리어 공사에 관하여 다음과 같이 도급계약을 체결한다.</p>
+
+      <div class="paper-parties">
+        <div><span>갑 (도급인·건축주)</span><b>${esc(m.client || '(성명 미입력)')}</b><small>${esc(m.clientAddr || '주소 미입력')}</small></div>
+        <div><span>을 (수급인·시공사)</span><b>${esc(company.name || '(상호 미입력)')}</b>
+          <small>${company.ceo ? '대표 ' + esc(company.ceo) + ' · ' : ''}${esc(company.biz || '사업자번호 미입력')}</small>
+          <small>${esc(company.tel || '')}${company.addr ? ' · ' + esc(company.addr) : ''}</small></div>
+      </div>
+
+      <div class="clauses">
+        ${clause(1, '공사 개요', `
+          <table class="cl-tbl">
+            <tr><th>공사명</th><td>${esc(src.title || '(현장명 미입력)')} 인테리어 공사</td></tr>
+            <tr><th>공사 장소</th><td>${esc(src.addr || '(주소 미입력)')}</td></tr>
+            <tr><th>공사 규모</th><td>${src.pyeong || 0}평 (${Math.round((src.pyeong || 0) * PY_M2)}㎡)</td></tr>
+            <tr><th>공사 범위</th><td>${est.groups.map(g => g.trade.name).join(' · ')} — 총 ${est.groups.length}개 공정 (세부 내역 별첨 견적서)</td></tr>
+          </table>`)}
+        ${clause(2, '도급 금액', `
+          <div class="ct-amount">금 <b>${num(total)}</b> 원정 <small>(부가가치세 포함 / 평당 ${num(est.perPy)}원)</small></div>
+          <p>공급가액 ${num(est.supply)}원 + 부가세 ${num(est.vat)}원. 세부 산출 근거는 별첨 견적서에 따른다.</p>`)}
+        ${clause(3, '공사 기간', `
+          착공 <b>${dateKR(start)}</b> · 준공 <b>${dateKR(end)}</b> (총 ${sch.totalDays}일).
+          공정표(별첨)에 따르며, 천재지변·갑의 사유로 인한 지연은 공기에서 제외한다.`)}
+        ${clause(4, '대금 지급', `
+          <table class="cl-tbl pay">
+            <thead><tr><th>구분</th><th>시기</th><th class="num">비율</th><th class="num">금액</th></tr></thead>
+            <tbody>${pay.map((x, i) => `<tr><td>${esc(x.label)}</td><td class="dim">${esc(x.when)} (${dateKR(payDate(i))})</td><td class="num">${x.pct}%</td><td class="num">${num(Math.round(total * x.pct / 100))}</td></tr>`).join('')}</tbody>
+          </table>
+          <p>잔금은 준공 및 하자 점검(14일) 완료 후 지급한다.</p>`)}
+        ${clause(5, '지체상금', `
+          을의 귀책으로 준공이 지연될 경우, 지연 1일당 도급금액의 <b>${m.delayRate}/1000</b>
+          (1일 <b>${num(daily)}원</b>)을 지체상금으로 갑에게 지급한다.`)}
+        ${clause(6, '하자담보책임', `
+          시공 하자 <b>1년</b> · 자재 하자 <b>제조사 기준(통상 5년)</b>. 을은 하자보수를 보증하기 위하여
+          도급금액의 <b>${m.warrantyBondPct}%</b> (<b>${num(bond)}원</b>)를 하자보수보증금으로 갈음하며, 하자담보 기간 만료 시 반환한다.`)}
+        ${clause(7, '추가·변경 공사', `
+          공사 범위 외 추가·변경 공사는 반드시 <b>서면 합의</b> 후 시행하며, 합의 없는 추가 청구는 인정하지 않는다.`)}
+        ${clause(8, '분쟁 해결', `
+          본 계약과 관련한 분쟁은 갑·을 상호 협의로 해결하되, 협의가 이루어지지 않을 경우
+          <b>${esc(m.court || '관할 법원')}</b>을 제1심 관할 법원으로 한다.`)}
+      </div>
+
+      <p class="ct-close">본 계약의 성립을 증명하기 위하여 계약서 2부를 작성하고 갑·을이 서명·날인 후 각 1부씩 보관한다.</p>
+      <div class="paper-meta ct-date"><b>${dateKR(todayISO())}</b></div>
+
+      <div class="paper-sign ct-sign">
+        <div><span>도급인 (갑)</span><b>${esc(m.client || '')}</b><i></i><small>(서명·인)</small></div>
+        <div><span>수급인 (을)</span><b>${esc(company.name || '')}</b><i></i><small>(서명·인)</small></div>
+      </div>
+      <p class="paper-fine">본 문서는 가상 시뮬레이션 산출물이며 실제 계약·법률 효력이 없습니다. 실제 계약 시 공정거래위원회 표준하도급계약서 등 정식 양식을 사용하세요.</p>
+    </div>
+
+    <div class="actions">
+      <button class="primary" onclick="printContract()">계약서 인쇄 / PDF 저장</button>
+      <button onclick="goDoc(docSource,'quote')">별첨 견적서 보기</button>
+      <button class="ghost" onclick="goDoc(docSource,'pay')">결제 스케줄</button>
+    </div>`;
+}
+function printContract() {
+  if (window.legionTrack) window.legionTrack('share', { kind:'contract_print' });
+  note('공사도급계약서를 출력했습니다.');
+  try { window.print(); } catch (e) { toast('인쇄를 지원하지 않는 환경입니다.', 'warn'); }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1206,6 +1352,152 @@ function orderMaterial(id) {
   note(`자재 발주: ${m.name} ${qty}${m.unit} (${m.brand} ${m.model} · ${m.grade}).`);
   renderMaterials();
   toast(`${m.name} ${qty}${m.unit} 발주 — 납기 3~5일 (시뮬레이션)`);
+}
+
+/* ══════════════════════════════════════════════════════════
+   8.5 단가표 탭 — 마이 단가표(Price Book)
+   프로 시공사의 핵심 자산은 "자기 단가표". 기본 시세 위에 자기 단가를 얹고
+   자기 품목을 추가하면, 견적 피커·계산·시세 판정이 전부 이 값을 읽는다.
+   ══════════════════════════════════════════════════════════ */
+let pbQuery = '';
+function showPricebook() { section('pricebook'); renderPricebook(); }
+
+function pbEdit(id, field, v) {
+  const val = Math.max(0, Math.round(parseFloat(v) || 0));
+  const cx = customItems.find(c => c.id === id);
+  if (cx) {
+    cx[field] = val;
+    if (field === 'cost') { if (cx.low > val) cx.low = val; if (cx.high < val) cx.high = val; }
+    saveCustom();
+  } else {
+    priceBook[id] = priceBook[id] || {};
+    priceBook[id][field] = val;
+    saveBook();
+  }
+  renderPricebook();
+  refreshTotals();  // 견적 화면이 열려 있으면 즉시 반영
+}
+function pbAuto(id, v) {
+  const cx = customItems.find(c => c.id === id); if (!cx) return;
+  cx.autoQty = Math.max(1, Math.round(parseFloat(v) || 1)); saveCustom();
+}
+function pbReset(id) {
+  delete priceBook[id]; saveBook(); renderPricebook(); refreshTotals();
+  toast('기본 시세 단가로 복원했습니다.');
+}
+function pbResetAll() {
+  if (!Object.keys(priceBook).length) { toast('수정한 단가가 없습니다.'); return; }
+  if (!confirm('수정한 단가를 모두 기본값으로 되돌릴까요? (직접 추가한 품목은 유지)')) return;
+  priceBook = {}; saveBook(); renderPricebook(); refreshTotals();
+  toast('모든 단가를 기본 시세로 복원했습니다.');
+}
+function pbAddCustom() {
+  const name = (document.getElementById('pb-new-name') || {}).value;
+  const trade = (document.getElementById('pb-new-trade') || {}).value || 'etc';
+  const unit = ((document.getElementById('pb-new-unit') || {}).value || '식').trim() || '식';
+  const cost = Math.max(0, Math.round(parseFloat((document.getElementById('pb-new-cost') || {}).value) || 0));
+  const spec = ((document.getElementById('pb-new-spec') || {}).value || '').trim();
+  if (!name || !name.trim()) { toast('품명을 입력하세요.', 'warn'); return; }
+  if (!(cost > 0)) { toast('단가를 입력하세요.', 'warn'); return; }
+  const item = { id: 'cx_' + uid(), trade, name: name.trim(), spec: spec || '직접 등록 품목',
+                 unit, cost, low: cost, high: cost, autoQty: 1 };
+  customItems.push(normalizeCustom([item])[0]);
+  saveCustom();
+  note(`단가표에 품목 추가: ${item.name} — ${num(cost)}/${unit} (${tradeOf(trade).name}).`);
+  renderPricebook();
+  toast(`"${item.name}" 품목을 단가표에 추가했습니다.`);
+}
+function pbDelCustom(id) {
+  const cx = customItems.find(c => c.id === id); if (!cx) return;
+  if (!confirm(`"${cx.name}" 품목을 단가표에서 삭제할까요?`)) return;
+  customItems = customItems.filter(c => c.id !== id); saveCustom();
+  renderPricebook(); toast('품목을 삭제했습니다.');
+}
+function pbSearch(v) {
+  pbQuery = String(v || '').trim().toLowerCase();
+  const list = document.getElementById('pb-list');
+  if (list) list.innerHTML = pbListHTML();
+}
+
+function pbListHTML() {
+  const eff = effectiveCatalog();
+  const q = pbQuery;
+  const match = c => !q || (c.name + ' ' + (c.spec || '') + ' ' + tradeOf(c.trade).name).toLowerCase().includes(q);
+  let out = '';
+  TRADES.forEach(t => {
+    const items = eff.filter(c => c.trade === t.key && match(c));
+    if (!items.length) return;
+    out += `<details class="pb-grp" ${q ? 'open' : ''}>
+      <summary><span><i class="swatch" style="background:${t.color}"></i>${t.name}</span>
+        <small>${items.length}품목</small><i class="chev">▾</i></summary>
+      <div class="pb-rows">
+        ${items.map(c => {
+          const edited = c.edited || c.custom;
+          return `<div class="pb-item ${edited ? 'on' : ''}">
+            <div class="pb-item-head">
+              <div class="pb-name"><b>${esc(c.name)}</b>
+                ${c.custom ? '<span class="badge cx">직접</span>' : c.edited ? '<span class="badge ed">수정</span>' : ''}
+                <small>${esc(c.spec || '')}</small></div>
+              ${c.custom
+                ? `<button class="icon" onclick="pbDelCustom('${c.id}')" title="품목 삭제">✕</button>`
+                : c.edited ? `<button class="ghost sm" onclick="pbReset('${c.id}')">기본값</button>` : ''}
+            </div>
+            <div class="pb-grid">
+              <label>단가 <span class="u">원/${esc(c.unit)}</span>
+                <input type="number" min="0" step="1000" value="${c.cost}" onchange="pbEdit('${c.id}','cost',this.value)" aria-label="${esc(c.name)} 단가"></label>
+              <label>시세 하한
+                <input type="number" min="0" step="1000" value="${c.low}" onchange="pbEdit('${c.id}','low',this.value)" aria-label="${esc(c.name)} 시세 하한"></label>
+              <label>시세 상한
+                <input type="number" min="0" step="1000" value="${c.high}" onchange="pbEdit('${c.id}','high',this.value)" aria-label="${esc(c.name)} 시세 상한"></label>
+              ${c.custom
+                ? `<label>표준수량 <span class="u">${esc(c.unit)}</span><input type="number" min="1" step="1" value="${c.autoQty || 1}" onchange="pbAuto('${c.id}',this.value)" aria-label="${esc(c.name)} 표준수량"></label>`
+                : `<div class="pb-band">기본 시세 ${num(itemOfBase(c.id).low)}~${num(itemOfBase(c.id).high)}</div>`}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </details>`;
+  });
+  return out || `<div class="empty"><b>검색 결과가 없습니다.</b><span>다른 품명·공정으로 다시 찾아보세요.</span></div>`;
+}
+function itemOfBase(id) { return CATALOG.find(i => i.id === id) || { low: 0, high: 0 }; }
+
+function renderPricebook() {
+  const wrap = document.getElementById('pricebook-body');
+  if (!wrap) return;
+  const editedCount = Object.keys(priceBook).length;
+  const customCount = customItems.length;
+  wrap.innerHTML = `
+    <p class="lead">기본 시세 단가 위에 <b>내 단가</b>를 얹거나 <b>내 품목</b>을 추가하세요.
+    여기서 고친 단가는 견적 작성의 기본값과 시세 점검 기준에 바로 반영됩니다.</p>
+
+    <div class="pb-kpi">
+      <div><b>${CATALOG.length}</b><span>기본 품목</span></div>
+      <div class="${editedCount ? 'on' : ''}"><b>${editedCount}</b><span>내가 수정</span></div>
+      <div class="${customCount ? 'on' : ''}"><b>${customCount}</b><span>직접 추가</span></div>
+      <button class="ghost sm" onclick="pbResetAll()" ${editedCount ? '' : 'disabled'}>전체 복원</button>
+    </div>
+
+    <details class="pb-add">
+      <summary><span>＋ 내 품목 추가 — 카탈로그에 없는 시공 항목</span><i class="chev">▾</i></summary>
+      <div class="pb-add-body">
+        <label class="wide">품명 <input type="text" id="pb-new-name" placeholder="예: 아트월 대리석 시공"></label>
+        <label>공정
+          <select id="pb-new-trade">${TRADES.map(t => `<option value="${t.key}">${t.name}</option>`).join('')}</select>
+        </label>
+        <label>단위 <input type="text" id="pb-new-unit" placeholder="㎡ / 식 / 개소" value="식"></label>
+        <label>단가 <input type="number" id="pb-new-cost" min="0" step="1000" placeholder="원"></label>
+        <label class="wide">규격/사양 <input type="text" id="pb-new-spec" placeholder="예: 이태리산 대리석 20T"></label>
+        <button class="primary" onclick="pbAddCustom()">단가표에 추가</button>
+      </div>
+    </details>
+
+    <div class="pb-searchbar">
+      <input type="search" id="pb-search" placeholder="품명·공정 검색" value="${esc(pbQuery)}" oninput="pbSearch(this.value)" aria-label="단가 검색">
+    </div>
+
+    <div id="pb-list">${pbListHTML()}</div>
+    <p class="fine">단가는 공개 시세 범위를 참고한 예시값입니다. 실제 자재 등급·현장 여건에 따라 조정하세요. 가상 시뮬레이션.</p>`;
 }
 
 /* ══════════════════════════════════════════════════════════

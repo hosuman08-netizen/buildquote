@@ -484,6 +484,75 @@ ul.check input{accent-color:var(--amber); width:15px; height:15px;}
   .paper-tbl .sub-row td:last-child{display:none;}
 }
 
+/* ══ 단가표(마이 단가표) ══ */
+.pb-kpi{display:flex; gap:8px; align-items:stretch; margin-bottom:16px; flex-wrap:wrap;}
+.pb-kpi > div{flex:1 1 90px; background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:10px 12px; text-align:center;}
+.pb-kpi > div.on{border-color:var(--amber-dim);}
+.pb-kpi b{display:block; font-size:20px; font-variant-numeric:tabular-nums; letter-spacing:-.02em;}
+.pb-kpi > div.on b{color:var(--amber);}
+.pb-kpi span{font-size:11px; color:var(--dim);}
+.pb-kpi button{flex:none; align-self:center;}
+.badge.cx{background:#3a2418; color:var(--amber); border:1px solid var(--amber-dim);}
+.badge.ed{background:var(--panel-2); color:var(--dim); border:1px solid var(--line-2);}
+
+details.pb-add{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:0 16px; margin-bottom:12px;}
+details.pb-add summary{display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; list-style:none; padding:13px 0; font-size:13px; color:var(--ink);}
+details.pb-add summary::-webkit-details-marker{display:none;}
+.pb-add-body{display:flex; flex-wrap:wrap; gap:10px; padding:0 0 16px;}
+.pb-add-body label{display:flex; flex-direction:column; gap:4px; flex:1 1 120px; font-size:11.5px; color:var(--faint);}
+.pb-add-body label.wide{flex:1 1 100%;}
+.pb-add-body input,.pb-add-body select{width:100%;}
+.pb-add-body button{flex:1 1 100%; margin-top:2px;}
+
+.pb-searchbar{margin-bottom:12px;}
+.pb-searchbar input{width:100%;}
+
+details.pb-grp{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); margin-bottom:8px; overflow:hidden;}
+details.pb-grp > summary{display:flex; align-items:center; gap:8px; justify-content:space-between; cursor:pointer; list-style:none; padding:12px 14px; font-size:13.5px; font-weight:600;}
+details.pb-grp > summary::-webkit-details-marker{display:none;}
+details.pb-grp > summary span{display:flex; align-items:center; gap:8px;}
+details.pb-grp > summary small{margin-left:auto; color:var(--faint); font-weight:400; font-size:11.5px;}
+details.pb-grp .chev{color:var(--faint); font-style:normal; transition:transform .18s ease-out;}
+details.pb-grp[open] > summary .chev{transform:rotate(180deg);}
+.pb-rows{padding:2px 14px 12px;}
+.pb-item{border-top:1px solid var(--line); padding:12px 0;}
+.pb-item:first-child{border-top:none;}
+.pb-item.on{margin:0 -14px; padding:12px 14px; background:var(--panel-2); border-top-color:var(--line-2);}
+.pb-item-head{display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:8px;}
+.pb-name b{font-size:13.5px;} .pb-name small{display:block; font-size:11px; color:var(--faint); margin-top:1px;}
+.pb-name .badge{margin-left:6px; vertical-align:middle;}
+.pb-grid{display:flex; flex-wrap:wrap; gap:8px 10px;}
+.pb-grid label{display:flex; flex-direction:column; gap:3px; flex:1 1 88px; font-size:10.5px; color:var(--faint);}
+.pb-grid label .u{color:var(--dim);}
+.pb-grid input{width:100%;}
+.pb-band{flex:1 1 100%; align-self:flex-end; font-size:11px; color:var(--faint); padding-bottom:4px;}
+
+/* ══ 공사도급계약서 (라이트 문서 팔레트) ══ */
+.ct-intro{font-size:12.5px; line-height:1.75; color:#4a423b; margin:0 0 16px;}
+.ct-intro b{color:#201c17;}
+.clauses{display:flex; flex-direction:column; gap:14px;}
+.cl{break-inside:avoid;}
+.cl-h{font-size:13px; color:#201c17; border-bottom:1px solid #ddd5c8; padding-bottom:5px; margin-bottom:7px;}
+.cl-h b{font-weight:700;}
+.cl-b{font-size:12px; line-height:1.7; color:#4a423b;}
+.cl-b b{color:#201c17;}
+.cl-b p{margin:6px 0 0; font-size:11px; color:#5f564e;}
+.cl-tbl{width:100%; border-collapse:collapse; font-size:11.5px;}
+.cl-tbl th,.cl-tbl td{text-align:left; padding:5px 8px; border-bottom:1px solid #e6ded1; color:#3c352f; vertical-align:top;}
+.cl-tbl > tr > th,.cl-tbl tbody th{width:88px; color:#8a7f74; font-weight:600; white-space:nowrap;}
+.cl-tbl thead th{background:#f1ead4; color:#5f564e; border-bottom:1px solid #d8cfc0;}
+.cl-tbl .num{text-align:right; font-variant-numeric:tabular-nums;}
+.cl-tbl .dim{color:#8a7f74;}
+.ct-amount{font-size:15px; color:#201c17; margin-bottom:4px;}
+.ct-amount b{font-size:19px; font-weight:700; font-variant-numeric:tabular-nums;}
+.ct-amount small{font-size:11px; color:#8a7f74; font-weight:400;}
+.ct-close{margin-top:20px; font-size:11.5px; color:#4a423b; text-align:center;}
+.ct-date{justify-content:center; margin:12px 0; font-size:13px; color:#201c17; letter-spacing:.08em;}
+.ct-sign{margin-top:16px;}
+.ct-sign > div{flex-direction:column; align-items:stretch; gap:4px;}
+.ct-sign > div > b{font-size:13px; color:#201c17; min-height:18px;}
+.ct-sign i{border-bottom:1px solid #8a7f74; height:20px; margin-top:2px;}
+
 /* ── 인쇄: 견적서만 남긴다 ── */
 @media print{
   body{background:#fff; color:#000;}

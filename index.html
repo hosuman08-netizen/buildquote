@@ -47,6 +47,7 @@
       <button data-section="docs"      onclick="goDoc(docSource,'quote')">문서</button>
       <button data-section="projects"  onclick="showProjects()">프로젝트</button>
       <button data-section="site"      onclick="showSite()">현장</button>
+      <button data-section="pricebook" onclick="showPricebook()">단가표</button>
       <button data-section="materials" onclick="showTrade()">자재</button>
     </nav>
 
@@ -62,7 +63,7 @@
       </section>
 
       <section id="docs" class="section hidden">
-        <h2>문서 <small>견적서 · 공정표 · 계약</small></h2>
+        <h2>문서 <small>견적서 · 공정표 · 계약서 · 결제</small></h2>
         <div id="docs-body"></div>
       </section>
 
@@ -79,6 +80,11 @@
       <section id="site" class="section hidden">
         <h2>현장 <small>작업일지 · 사진 · 하자</small></h2>
         <div id="site-body"></div>
+      </section>
+
+      <section id="pricebook" class="section hidden">
+        <h2>단가표 <small>마이 단가 · 품목 관리</small></h2>
+        <div id="pricebook-body"></div>
       </section>
 
       <section id="materials" class="section hidden">
