@@ -141,6 +141,36 @@ button.primary:hover, .wallet button:hover { filter:brightness(1.08); }
 .est-settings label { display:flex; align-items:center; gap:5px; color:var(--dim); font-size:11.5px; }
 .est-settings input { width:58px; }
 
+/* ── Estimate insight: composition split + KPIs ── */
+.est-insight {
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:calc(var(--grid)*2); margin-bottom:calc(var(--grid)*2);
+}
+.est-split {
+  display:flex; height:10px; border-radius:5px; overflow:hidden;
+  background:var(--card-hi); border:1px solid var(--line);
+}
+.est-split-mat { background:linear-gradient(90deg,var(--gold),var(--gold-dim)); transition:width 300ms ease-out; }
+.est-split-lab { background:linear-gradient(90deg,#5a7a8c,#3f5866); transition:width 300ms ease-out; }
+.est-split-legend {
+  display:flex; gap:calc(var(--grid)*2); margin-top:8px;
+  font-size:11.5px; color:var(--dim);
+}
+.est-split-legend .dot { display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:5px; vertical-align:middle; }
+.est-split-legend .dot.mat { background:var(--gold); }
+.est-split-legend .dot.lab { background:#5a7a8c; }
+.est-kpis {
+  display:flex; gap:calc(var(--grid)); margin-top:calc(var(--grid)*1.5);
+}
+.est-kpi {
+  flex:1; display:flex; flex-direction:column; gap:1px;
+  background:var(--card-hi); border:1px solid var(--line); border-radius:8px;
+  padding:calc(var(--grid)) calc(var(--grid)*1.25);
+}
+.est-kpi-v { font-size:16px; font-variant-numeric:tabular-nums; }
+.est-kpi-l { font-size:11px; color:var(--dim); }
+.est-kpi-h { font-size:9.5px; color:var(--gold-dim); }
+
 .est-totals {
   background:var(--card); border:1px solid var(--line); border-radius:12px;
   padding:calc(var(--grid)*2); margin-bottom:calc(var(--grid)*2);

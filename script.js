@@ -39,7 +39,7 @@ const ESTIMATE_DEFAULTS = { overheadPct: 10, marginPct: 12, taxPct: 10, continge
 
 // Draft estimate the user is currently building (line items) — persisted so it survives reload
 let draftEstimate = JSON.parse(localStorage.getItem('p14_draft_estimate') || 'null')
-  || { title: '', location: '', durationDays: 90, lineItems: [], settings: { ...ESTIMATE_DEFAULTS } };
+  || { title: '', location: '', durationDays: 90, floorArea: 0, lineItems: [], settings: { ...ESTIMATE_DEFAULTS } };
 function saveDraft() { localStorage.setItem('p14_draft_estimate', JSON.stringify(draftEstimate)); }
 
 // Pure function: compute a full itemized estimate from line items + settings.
@@ -66,8 +66,20 @@ function computeEstimate(est) {
   const tax        = +(preTax * s.taxPct / 100).toFixed(2);
   const total      = +(preTax + tax).toFixed(2);
 
+  // Derived estimating metrics an estimator actually reads:
+  //  - labor share of direct cost (a real bid-health signal; >55% often flags labor-heavy scope)
+  //  - burdened markup the total carries over raw direct cost
+  //  - cost per calendar day and per m² of built area (floorArea, if the user provides one)
+  const laborShare = direct ? +(laborCost / direct * 100).toFixed(1) : 0;
+  const markupPct  = direct ? +((total - direct) / direct * 100).toFixed(1) : 0;
+  const days       = Number(est.durationDays) || 0;
+  const area       = Number(est.floorArea) || 0;
+  const costPerDay = days  ? Math.round(total / days) : 0;
+  const costPerM2  = area  ? Math.round(total / area) : 0;
+
   return { rows, materialCost:+materialCost.toFixed(2), laborCost:+laborCost.toFixed(2),
-           laborHours, direct, overhead, contingency, margin, tax, total, settings: s };
+           laborHours, direct, overhead, contingency, margin, tax, total, settings: s,
+           laborShare, markupPct, costPerDay, costPerM2, days, area };
 }
 
 // User-facing Korean labels for internal status codes
@@ -265,6 +277,7 @@ function newProjectFromEstimate() {
                 settings: { ...draftEstimate.settings }, total: est.total,
                 materialCost: est.materialCost, laborCost: est.laborCost, laborHours: est.laborHours },
     durationDays: Number(draftEstimate.durationDays) || 90,
+    floorArea: Number(draftEstimate.floorArea) || 0,
     phases: freshPhases(),
     bids: [],
     surprise: window._p14Voice ? window._p14Voice.surprise : 0.4,
@@ -276,7 +289,7 @@ function newProjectFromEstimate() {
   localStorage.setItem('p14_projects', JSON.stringify(projects));
 
   // reset draft for the next estimate
-  draftEstimate = { title: '', location: '', durationDays: 90, lineItems: [], settings: { ...ESTIMATE_DEFAULTS } };
+  draftEstimate = { title: '', location: '', durationDays: 90, floorArea: 0, lineItems: [], settings: { ...ESTIMATE_DEFAULTS } };
   saveDraft();
 
   addToCodex(`견적으로 "${title}" 프로젝트 생성: ${proj.budget.toLocaleString()} 크레딧 (자재 ${Math.round(est.materialCost).toLocaleString()}, 인건비 ${Math.round(est.laborCost).toLocaleString()}).`);
@@ -347,9 +360,10 @@ function estOptionsHTML() {
 }
 
 function estFieldInput(field, val) {
-  draftEstimate[field] = field === 'durationDays' ? (parseInt(val)||0) : val;
+  const numeric = (field === 'durationDays' || field === 'floorArea');
+  draftEstimate[field] = numeric ? Math.max(0, parseInt(val) || 0) : val;
   saveDraft();
-  if (field === 'durationDays') renderEstimate(); // duration affects schedule readout
+  if (numeric) renderEstimate(); // duration/area feed the derived cost KPIs
 }
 function estSettingInput(key, val) {
   draftEstimate.settings[key] = Math.max(0, parseFloat(val) || 0);
@@ -395,6 +409,28 @@ function renderEstimate() {
   const row = (label, val, cls='') =>
     `<div class="est-total-row ${cls}"><span>${label}</span><span class="hero-num">${Math.round(val).toLocaleString()}</span></div>`;
 
+  // Cost-composition read: material vs labor split + the KPIs an estimator scans first.
+  // Only shown once there are line items — an empty bar teaches nothing.
+  const matShare = est.direct ? Math.round(est.materialCost / est.direct * 100) : 0;
+  const kpi = (label, val, hint='') =>
+    val ? `<div class="est-kpi"><span class="est-kpi-v hero-num">${val}</span><span class="est-kpi-l">${label}</span>${hint?`<span class="est-kpi-h">${hint}</span>`:''}</div>` : '';
+  const insightHTML = est.rows.length ? `
+    <div class="est-insight">
+      <div class="est-split" title="자재 ${matShare}% · 인건비 ${est.laborShare}%">
+        <div class="est-split-mat" style="width:${matShare}%"></div>
+        <div class="est-split-lab" style="width:${est.laborShare}%"></div>
+      </div>
+      <div class="est-split-legend">
+        <span><i class="dot mat"></i>자재 ${matShare}%</span>
+        <span><i class="dot lab"></i>인건비 ${est.laborShare}%</span>
+      </div>
+      <div class="est-kpis">
+        ${kpi('총 마크업', est.markupPct + '%', '직접비 대비')}
+        ${kpi('일 평균', est.costPerDay ? est.costPerDay.toLocaleString() : '', est.days + '일 공기')}
+        ${kpi('m²당', est.costPerM2 ? est.costPerM2.toLocaleString() : '', est.area ? est.area.toLocaleString()+'m²' : '')}
+      </div>
+    </div>` : '';
+
   wrap.innerHTML = `
     <div class="est-meta-fields">
       <input type="text" placeholder="프로젝트 이름" value="${(draftEstimate.title||'').replace(/"/g,'&quot;')}"
@@ -404,6 +440,10 @@ function renderEstimate() {
       <label class="est-dur">공기
         <input type="number" min="1" value="${draftEstimate.durationDays||90}"
                oninput="estFieldInput('durationDays', this.value)"> 일
+      </label>
+      <label class="est-dur">연면적
+        <input type="number" min="0" value="${draftEstimate.floorArea||''}" placeholder="0"
+               oninput="estFieldInput('floorArea', this.value)"> m²
       </label>
     </div>
 
@@ -421,6 +461,8 @@ function renderEstimate() {
       <label>마진 % <input type="number" min="0" value="${s.marginPct}" oninput="estSettingInput('marginPct', this.value)"></label>
       <label>세금 % <input type="number" min="0" value="${s.taxPct}" oninput="estSettingInput('taxPct', this.value)"></label>
     </div>
+
+    ${insightHTML}
 
     <div class="est-totals">
       ${row('자재비', est.materialCost)}
