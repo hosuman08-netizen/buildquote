@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SiteForge — 건설 견적·현장 관리 시뮬레이터</title>
-  <meta name="description" content="건설 프로젝트 비용 견적, 현장 음성 로그, 자재 거래를 한곳에서. 브라우저로 바로 돌아가는 가상 건설 시뮬레이션(실제 자금·시공 아님).">
+  <title>SiteForge — 인테리어 견적서 · 공정표 · 현장 관리</title>
+  <meta name="description" content="평형과 시공 범위만 고르면 공정별 라인아이템 견적서·공정표·결제 스케줄이 한 번에. 국내 인테리어 실무 문법 그대로 만든 가상 견적 시뮬레이터.">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://hosuman08-netizen.github.io/buildquote/">
-  <meta property="og:title" content="SiteForge — 건설 견적·현장 관리 시뮬레이터">
-  <meta property="og:description" content="비용 견적, 현장 음성 로그, 자재 거래를 한곳에서. 브라우저로 바로 돌아가는 가상 건설 시뮬레이션.">
+  <meta property="og:title" content="SiteForge — 인테리어 견적서 · 공정표 · 현장 관리">
+  <meta property="og:description" content="공정별 라인아이템 견적서, 공정표, 계약금·중도금·잔금 스케줄까지. 국내 실무 문법 그대로의 가상 견적 시뮬레이터.">
   <meta property="og:image" content="https://hosuman08-netizen.github.io/buildquote/og.png">
   <meta property="og:locale" content="ko_KR">
   <meta property="og:site_name" content="SiteForge">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="SiteForge — 건설 견적·현장 관리 시뮬레이터">
-  <meta name="twitter:description" content="비용 견적, 현장 음성 로그, 자재 거래를 한곳에서. 브라우저로 바로 돌아가는 가상 건설 시뮬레이션.">
+  <meta name="twitter:title" content="SiteForge — 인테리어 견적서 · 공정표 · 현장 관리">
+  <meta name="twitter:description" content="공정별 라인아이템 견적서, 공정표, 결제 스케줄까지 한 번에.">
   <meta name="twitter:image" content="https://hosuman08-netizen.github.io/buildquote/og.png">
 
   <link rel="canonical" href="https://hosuman08-netizen.github.io/buildquote/">
@@ -27,87 +27,72 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <!-- 고지: 표시와 코드가 일치. 금액은 공개 시세 범위를 참고한 예시 단가이며 실제 계약 효력 없음. -->
+  <div class="banner" role="note">
+    <b>가상 시뮬레이션</b> · 실제 계약 · 시공 · 자금 이동이 아닙니다. 단가는 공개 시세 범위를 참고한 <b>예시값</b>이며 실제 견적을 대체하지 않습니다. 18+
+  </div>
+
   <div class="container">
-    <header>
-      <div class="disclaimer">FICTIONAL CONSTRUCTION SIMULATION • 18+ • 가상 시뮬레이션일 뿐이며 실제 투자·자금 이동·실제 시공이 아닙니다. 모든 화폐는 가상 크레딧입니다.</div>
-      <h1>SiteForge</h1>
-      <p class="tagline">건설 견적 · 현장 로그 · 자재 관리 (시뮬레이션)</p>
-
-      <div class="wallet">
-        <button onclick="connectWallet()">지갑 연결</button>
-        <div id="wallet-info">게스트 • 680 크레딧</div>
+    <header class="topbar">
+      <div class="brand">
+        <h1>SiteForge</h1>
+        <p class="tagline">인테리어 견적서 · 공정표 · 현장 관리</p>
       </div>
-
-      <div class="nav">
-        <button data-section="dashboard" onclick="showDashboard()">대시보드</button>
-        <button data-section="projects" onclick="showProjects()">프로젝트</button>
-        <button data-section="estimate" onclick="showEstimate()">견적</button>
-        <button data-section="voice" onclick="showVoice()">현장 로그</button>
-        <button data-section="trade" onclick="showTrade()">자재</button>
-        <button data-section="codex" onclick="showCodex()">노트</button>
-        <button data-section="preview" onclick="showPreview()">미리보기</button>
-      </div>
+      <button id="cv-toggle" class="viewtoggle" onclick="toggleClientView()" title="건축주에게 보여줄 화면으로 전환 (원가·이윤 숨김)">시공사 뷰</button>
     </header>
 
-    <!-- Dashboard -->
-    <div id="dashboard" class="section">
-      <h2>진행 중 현장</h2>
-      <div id="map"></div>
-      <div id="active-builds" class="grid"></div>
-    </div>
+    <nav class="nav" aria-label="주요 화면">
+      <button data-section="dashboard" onclick="showDashboard()">대시보드</button>
+      <button data-section="estimate"  onclick="showEstimate()">견적</button>
+      <button data-section="docs"      onclick="goDoc(docSource,'quote')">문서</button>
+      <button data-section="projects"  onclick="showProjects()">프로젝트</button>
+      <button data-section="site"      onclick="showSite()">현장</button>
+      <button data-section="materials" onclick="showTrade()">자재</button>
+    </nav>
 
-    <!-- Projects / Bids -->
-    <div id="projects" class="section hidden">
-      <h2>프로젝트</h2>
-      <div id="project-list" class="grid"></div>
-      <button onclick="showEstimate()" class="primary">+ 새 견적 / 프로젝트</button>
-    </div>
+    <main>
+      <section id="dashboard" class="section">
+        <h2>대시보드</h2>
+        <div id="dash-body"></div>
+      </section>
 
-    <!-- Estimate Builder (real construction estimating) -->
-    <div id="estimate" class="section hidden">
-      <h2>비용 견적 작성</h2>
-      <div id="estimate-body"></div>
-    </div>
+      <section id="estimate" class="section hidden">
+        <h2>견적 작성 <small>공정별 라인아이템</small></h2>
+        <div id="estimate-body"></div>
+      </section>
 
-    <!-- Project Detail: real progress tracking -->
-    <div id="project-detail" class="section hidden">
-      <h2>프로젝트 진행률</h2>
-      <div id="detail-body"></div>
-    </div>
+      <section id="docs" class="section hidden">
+        <h2>문서 <small>견적서 · 공정표 · 계약</small></h2>
+        <div id="docs-body"></div>
+      </section>
 
-    <!-- Voice Log -->
-    <div id="voice" class="section hidden">
-      <h2>🎙 현장 음성 로그</h2>
-      <button onclick="recordVoiceLog()">🎙 일일 로그 녹음</button>
-      <div id="voice-preview"></div>
-      <div id="log-result"></div>
-    </div>
+      <section id="projects" class="section hidden">
+        <h2>프로젝트</h2>
+        <div id="project-list"></div>
+      </section>
 
-    <!-- Trade / Materials -->
-    <div id="trade" class="section hidden">
-      <h2>자재 거래 (가상 크레딧)</h2>
-      <div id="materials-list" class="grid"></div>
-    </div>
+      <section id="detail" class="section hidden">
+        <h2 class="sr-only">현장 상세</h2>
+        <div id="detail-body"></div>
+      </section>
 
-    <!-- Notes -->
-    <div id="codex" class="section hidden">
-      <h2>📓 현장 노트</h2>
-      <div id="codex-list"></div>
-    </div>
+      <section id="site" class="section hidden">
+        <h2>현장 <small>작업일지 · 사진 · 하자</small></h2>
+        <div id="site-body"></div>
+      </section>
 
-    <!-- Virtual Build Preview -->
-    <div id="preview" class="section hidden">
-      <h2>🖼 가상 시공 미리보기</h2>
-      <div id="preview-viz" style="height:120px;background:#12100d;border:1px solid #3a3124;border-radius:6px;position:relative;overflow:hidden;margin-bottom:8px;">
-        <div id="build-preview" style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:60px;background:linear-gradient(#c5a46e,#8b6f47);transition:all 0.4s;height:40px;border-radius:2px;box-shadow:0 0 12px #c5a46e;"></div>
-      </div>
-      <div id="preview-meta" style="font-size:11px;color:#8b6f47;"></div>
-      <button onclick="liveTourPreview()">라이브 투어 (음성)</button>
-    </div>
+      <section id="materials" class="section hidden">
+        <h2>자재 명세</h2>
+        <div id="materials-body"></div>
+      </section>
+    </main>
+
     <footer class="site-footer">
-      <a href="https://hosuman08-netizen.github.io/legion-hub/">🎮 다른 앱 더보기</a>
+      <a href="https://hosuman08-netizen.github.io/legion-hub/">다른 앱 더보기</a>
     </footer>
   </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="./lung-surprise-eye.js"></script>
