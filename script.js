@@ -288,6 +288,9 @@ function newProjectFromEstimate() {
   projects.unshift(proj);
   localStorage.setItem('p14_projects', JSON.stringify(projects));
 
+  // Core action: a real itemized estimate was generated → project created.
+  if (window.legionTrack) window.legionTrack('activate');
+
   // reset draft for the next estimate
   draftEstimate = { title: '', location: '', durationDays: 90, floorArea: 0, lineItems: [], settings: { ...ESTIMATE_DEFAULTS } };
   saveDraft();
