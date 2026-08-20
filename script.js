@@ -1682,7 +1682,7 @@ try{ if(document.readyState==='loading') document.addEventListener('DOMContentLo
 (function(){try{
   if(document.getElementById('moneyPipe'))return;
   var d=document.createElement('div');
-  d.innerHTML='<div id="moneyPipe" style="margin-top:12px;padding:10px;border:1px solid #c5a46e44;border-radius:12px;background:#16121c;text-align:center;font-size:12px"><div style="color:#e0b552;font-weight:700;margin-bottom:4px">pipe</div><a style="color:#e0b552;margin:0 6px" href="https://hosuman08-netizen.github.io/legion-hub/">Hub</a></div>';
+  d.innerHTML='<div id="moneyPipe" hidden></div>';
   var app=document.getElementById('app')||document.body;
   app.appendChild(d.firstElementChild||d);
 }catch(e){}
